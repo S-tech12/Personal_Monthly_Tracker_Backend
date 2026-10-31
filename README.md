@@ -1,6 +1,6 @@
-# VoiceSpend Backend
+# Spendly Backend
 
-This is the backend API for VoiceSpend, built with Node.js, Express, and MongoDB.
+This is the backend API for Spendly, built with Node.js, Express, and MongoDB.
 
 ## Architecture
 
