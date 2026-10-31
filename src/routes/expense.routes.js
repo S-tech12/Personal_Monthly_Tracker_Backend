@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createFromVoice, parseFromVoice, createBulk, getByDate, getSummary, getCategoryBreakdown, getRecent } from '../controllers/expense.controller.js';
+import { createFromVoice, parseFromVoice, createBulk, getByDate, getSummary, getCategoryBreakdown, getRecent, getCurrentMonth, getCurrentWeek } from '../controllers/expense.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -23,5 +23,7 @@ router.get('/category-breakdown', protect, getCategoryBreakdown);
 
 // ok so this route is used to fetch the recent expenses from the family
 router.get('/recent', protect, getRecent);
+router.get('/current-month', protect, getCurrentMonth);
+router.get('/current-week', protect, getCurrentWeek);
 
 export default router;

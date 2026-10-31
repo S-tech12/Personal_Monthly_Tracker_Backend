@@ -92,6 +92,7 @@ export const getBudgetOverview = async (userId) => {
       // first it will filter(match) the document where userid is in the family member's object id array and expenseDateTime is greter then start of month and less then end of month
       $match: {
         userId: { $in: objectIdVisibleIds },
+        type: { $ne: 'Credit' },
         expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth }
       }
     },
@@ -110,6 +111,7 @@ export const getBudgetOverview = async (userId) => {
       // it is just like above
       $match: {
         userId: { $in: objectIdVisibleIds },
+        type: { $ne: 'Credit' },
         expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth }
       }
     },

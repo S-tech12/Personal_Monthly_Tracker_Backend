@@ -1,4 +1,4 @@
-import { createExpenseFromVoice, parseExpensesFromVoice, createExpenses, getExpensesByDate, getExpenseSummary, getCategoryBreakdown as getCategoryBreakdownService, getRecentExpenses } from '../services/expense.service.js';
+import { createExpenseFromVoice, parseExpensesFromVoice, createExpenses, getExpensesByDate, getExpenseSummary, getCategoryBreakdown as getCategoryBreakdownService, getRecentExpenses, getCurrentMonthExpenses, getCurrentWeekExpenses } from '../services/expense.service.js';
 
 
 // this function is used to create and store the expenses into the database..
@@ -84,7 +84,7 @@ export const createBulk = async (req, res, next) => {
     if (!Array.isArray(expenses) || expenses.length === 0) {
       return res.status(400).json({ success: false, message: 'At least one expense is required' });
     }
-    const savedExpenses = await createExpenses(req.user._id, expenses);
+    const savedExpenses = await createExpenses(req.user._id, expenses, 'manual');
     return res.status(201).json({ success: true, message: `${savedExpenses.length} expenses added successfully`, data: { expenses: savedExpenses } });
   } catch (error) {
     next(error);
@@ -141,6 +141,9 @@ export const getByDate = async (req, res, next) => {
 // this function is responsible to get the expenses for that current month
 export const getSummary = async (req, res, next) => {
   try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     const summary = await getExpenseSummary(req.user._id);
 
     return res.status(200).json({
@@ -175,6 +178,24 @@ export const getRecent = async (req, res, next) => {
       success: true,
       data: { expenses }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCurrentMonth = async (req, res, next) => {
+  try {
+    const expenses = await getCurrentMonthExpenses(req.user._id);
+    return res.status(200).json({ success: true, data: { expenses } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCurrentWeek = async (req, res, next) => {
+  try {
+    const expenses = await getCurrentWeekExpenses(req.user._id);
+    return res.status(200).json({ success: true, data: { expenses } });
   } catch (error) {
     next(error);
   }

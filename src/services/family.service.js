@@ -49,7 +49,7 @@ export const familyService = {
     // first fetch the use document to whom we want to send invitation
     const recipient = await User.findOne({ email: recipientEmail });
     if (!recipient) {
-      throw new Error('No VoiceSpend account found with this email');
+      throw new Error('No Spendly account found with this email');
     }
 
     // if the document contains familyId already. then we are just throw new error 

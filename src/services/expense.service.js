@@ -44,7 +44,7 @@ export const parseExpensesFromVoice = async (userId, transcript) => {
   return parseExpenseFromText(transcript, user.defaultCurrency);
 };
 
-export const createExpenses = async (userId, expenses) => {
+export const createExpenses = async (userId, expenses, source = 'voice') => {
   const expenseDateTime = new Date();
   return Expense.insertMany(expenses.map(expense => ({
     userId,
@@ -56,7 +56,7 @@ export const createExpenses = async (userId, expenses) => {
     person: expense.person || null,
     transactionDate: expense.date || null,
     expenseDateTime,
-    source: 'voice'
+    source
   })));
 };
 
@@ -118,65 +118,42 @@ export const getExpenseSummary = async (userId) => {
   endOfMonth.setUTCHours(23, 59, 59, 999);
 
 
-  // now there are 2 parellal aggregation runs in Promise.all([]) method
+  const summarize = async (start, end) => {
+    const rows = await Expense.aggregate([
+      { $match: { userId: { $in: visibleUserIds }, expenseDateTime: { $gte: start, $lte: end } } },
+      { $group: { _id: { currency: '$currency', type: '$type' }, total: { $sum: '$amount' } } },
+      { $project: { _id: 0, currency: '$_id.currency', type: '$_id.type', total: 1 } }
+    ]);
+    const grouped = (predicate) => rows.filter(predicate).reduce((result, row) => {
+      const existing = result.find(item => item.currency === row.currency);
+      if (existing) existing.total += row.total;
+      else result.push({ currency: row.currency, total: row.total });
+      return result;
+    }, []);
+    const income = grouped(row => row.type === 'Credit');
+    const expenses = grouped(row => row.type !== 'Credit');
+    const currencies = [...new Set([...income, ...expenses].map(item => item.currency))];
+    const net = currencies.map(currency => ({
+      currency,
+      total: (income.find(item => item.currency === currency)?.total || 0) - (expenses.find(item => item.currency === currency)?.total || 0)
+    }));
+    return { income, expenses, net };
+  };
 
   const [todaySummary, monthSummary] = await Promise.all([
-    Expense.aggregate([
-      { 
-        // first it will filter the document whose userId in the visibleUserIds and expense time is greaterTHen today and lesser then tonight
-        $match: { 
-          userId: { $in: visibleUserIds },
-          expenseDateTime: { $gte: startOfToday, $lte: endOfToday } 
-        } 
-      },
-
-      // then it will group the document based on the currency and also side by side there is one variable be there in which the amount will be added
-      { 
-        $group: { 
-          _id: "$currency", 
-          total: { $sum: "$amount" } 
-        } 
-      },
-
-      // ok so it just change our document style i mean before in the document for _id : "INR" then it becomes currency , total remains as it is...
-      {
-        $project: {
-          _id: 0,
-          currency: "$_id",
-          total: 1
-        }
-      }
-    ]),
-
-    // same for month
-    Expense.aggregate([
-      { 
-        $match: { 
-          userId: { $in: visibleUserIds },
-          expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth } 
-        } 
-      },
-      { 
-        $group: { 
-          _id: "$currency", 
-          total: { $sum: "$amount" } 
-        } 
-      },
-      {
-        $project: {
-          _id: 0,
-          currency: "$_id",
-          total: 1
-        }
-      }
-    ])
+    summarize(startOfToday, endOfToday),
+    summarize(startOfMonth, endOfMonth)
   ]);
 
-
-  // then it just return the expenses.
   return {
-    today: todaySummary,
-    thisMonth: monthSummary
+    // These legacy fields represent spending and must not include income.
+    // Keep them for existing frontend consumers while exposing the separated
+    // income/expense totals below.
+    today: todaySummary.expenses,
+    thisMonth: monthSummary.expenses,
+    income: { today: todaySummary.income, thisMonth: monthSummary.income },
+    expenses: { today: todaySummary.expenses, thisMonth: monthSummary.expenses },
+    net: { today: todaySummary.net, thisMonth: monthSummary.net }
   };
 };
 
@@ -196,6 +173,7 @@ export const getCategoryBreakdown = async (userId) => {
       // first filter the document where userid in the visibleUserIds and expense time greater then start month and lesser then end of month
       $match: {
         userId: { $in: visibleUserIds },
+        type: { $ne: 'Credit' },
         expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth }
       }
     },
@@ -244,6 +222,54 @@ export const getRecentExpenses = async (userId, limit = 10) => {
     return {
       ...rest,
       addedBy: addedBy ? { id: addedBy._id, name: addedBy.name, profilePictureUrl: addedBy.profilePictureUrl } : null
+    };
+  });
+};
+
+export const getCurrentMonthExpenses = async (userId) => {
+  const visibleUserIds = await familyService.getVisibleUserIds(userId);
+  const startOfMonth = dayjs().startOf('month').toDate();
+  const endOfMonth = dayjs().endOf('month').toDate();
+
+  const expenses = await Expense.find({
+    userId: { $in: visibleUserIds },
+    expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+  })
+    .populate('userId', 'name profilePictureUrl')
+    .sort({ expenseDateTime: -1 })
+    .lean();
+
+  return expenses.map(expense => {
+    const { userId: addedBy, ...rest } = expense;
+    return {
+      ...rest,
+      addedBy: addedBy
+        ? { id: addedBy._id, name: addedBy.name, profilePictureUrl: addedBy.profilePictureUrl }
+        : null
+    };
+  });
+};
+
+export const getCurrentWeekExpenses = async (userId) => {
+  const visibleUserIds = await familyService.getVisibleUserIds(userId);
+  const startOfWeek = dayjs().startOf('week').toDate();
+  const endOfWeek = dayjs().endOf('week').toDate();
+
+  const expenses = await Expense.find({
+    userId: { $in: visibleUserIds },
+    expenseDateTime: { $gte: startOfWeek, $lte: endOfWeek }
+  })
+    .populate('userId', 'name profilePictureUrl')
+    .sort({ expenseDateTime: -1 })
+    .lean();
+
+  return expenses.map(expense => {
+    const { userId: addedBy, ...rest } = expense;
+    return {
+      ...rest,
+      addedBy: addedBy
+        ? { id: addedBy._id, name: addedBy.name, profilePictureUrl: addedBy.profilePictureUrl }
+        : null
     };
   });
 };

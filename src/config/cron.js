@@ -14,11 +14,13 @@ export const initScheduledJobs = () => {
     runWeeklyReports();
   });
 
-  // Monthly reports: 1st of every month at 8:00 AM
-  cron.schedule('0 8 1 * *', () => {
-    console.log('[Cron] Running monthly reports job...');
+  // Monthly rollover/report: run shortly after midnight on the 1st.
+  // Budget usage is calculated from current-month transactions, so it is
+  // automatically zero for the new month while the configured limit remains.
+  cron.schedule('5 0 1 * *', () => {
+    console.log('[Cron] Running monthly rollover and reports job...');
     runMonthlyReports();
-  });
+  }, { timezone: process.env.APP_TIMEZONE || 'Asia/Kolkata' });
   
   console.log('[Cron] Scheduled jobs initialized.');
 };

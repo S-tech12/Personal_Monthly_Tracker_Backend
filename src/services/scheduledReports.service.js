@@ -9,6 +9,7 @@ import User  from '../models/User.model.js';
 
 // this is the actual logic to group the data and fetch the data from the expens collections and it is in the separate file
 import { getExpensesGroupedByDay, sendScheduledReport } from './report.service.js';
+import { transporter } from '../config/mailer.js';
 
 
 // that's how we add the plugin in the dayjs library so it can use it..
@@ -63,8 +64,8 @@ export const runWeeklyReports = async () => {
 export const runMonthlyReports = async () => {
   try {
     const users = await User.find({
-      reportFrequency: 'monthly',
-      'notificationPreferences.reportEmails': true
+      isVerified: true,
+      'notificationPreferences.reportEmails': { $ne: false }
     });
 
     for (const user of users) {
@@ -78,12 +79,26 @@ export const runMonthlyReports = async () => {
 
         const groupedExpenses = await getExpensesGroupedByDay(user._id, startDate, endDate);
 
-        if (groupedExpenses.length === 0) {
-          console.log(`[Monthly Report] Skipping ${user.email} - no expenses in range`);
-          continue;
+        if (groupedExpenses.length > 0) {
+          await sendScheduledReport(user, groupedExpenses, periodLabel);
+        } else {
+          // Still notify the registered user that the new budget period has
+          // started, even when the previous month had no transactions.
+          await transporter.sendMail({
+            from: `"Spendly" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: `Spendly: ${lastMonthStart.format('MMMM YYYY')} summary`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                <h2 style="color: #6d4aff;">Your new month has started</h2>
+                <p>Hi ${user.name || 'there'},</p>
+                <p>There were no transactions recorded in ${lastMonthStart.format('MMMM YYYY')}.</p>
+                <p>Your current-month budget usage has been reset to 0. Your configured budget limits remain unchanged.</p>
+                <p>Start tracking your new month with Spendly.</p>
+              </div>
+            `
+          });
         }
-
-        await sendScheduledReport(user, groupedExpenses, periodLabel);
         console.log(`[Monthly Report] Sent to ${user.email}`);
       } catch (err) {
         console.error(`[Monthly Report] Failed for ${user.email}:`, err);

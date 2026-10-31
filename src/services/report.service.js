@@ -142,7 +142,7 @@ export const generateReportPdfBuffer = (user, groupedExpenses, periodLabel, perP
       const generateHeader = () => {
         doc.rect(0, 0, doc.page.width, 100).fill('#f8fafc');
         doc.fill('#0f172a');
-        doc.font('Helvetica-Bold').fontSize(24).text('VoiceSpend', 50, 30);
+        doc.font('Helvetica-Bold').fontSize(24).text('Spendly', 50, 30);
         doc.font('Helvetica').fontSize(12).text(periodLabel, 50, 60);
         
         doc.font('Helvetica-Bold').fontSize(12).text('Prepared For:', 350, 30, { width: 195, align: 'right' });
@@ -314,9 +314,9 @@ export const sendScheduledReport = async (user, groupedExpenses, periodLabel, pe
   
   // create the object that will used to send the registered email id
   const mailOptions = {
-    from: `"VoiceSpend" <${process.env.EMAIL_USER}>`,
+    from: `"Spendly" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: `Your VoiceSpend ${periodLabel}`,
+    subject: `Your Spendly ${periodLabel}`,
     text: `Please find attached your ${periodLabel}.`,
     attachments: [
       {
@@ -365,9 +365,9 @@ export const sendCurrentMonthReport = async (userId) => {
   const pdfBuffer = await generateReportPdfBuffer(user, groupedExpenses, periodLabel, perPersonTotals);
 
   const mailOptions = {
-    from: `"VoiceSpend" <${process.env.EMAIL_USER}>`,
+    from: `"Spendly" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: `Your VoiceSpend Report (${startLabel} - ${endLabel})`,
+    subject: `Your Spendly Report (${startLabel} - ${endLabel})`,
     text: `Please find attached your current month's report (${startLabel} - ${endLabel}).`,
     attachments: [
       {
@@ -440,9 +440,9 @@ export const generateAndSendReport = async (userId, startDate, endDate, scope) =
   const pdfBuffer = await generateReportPdfBuffer(user, groupedExpenses, periodLabel, perPersonTotals);
 
   const mailOptions = {
-    from: `"VoiceSpend" <${process.env.EMAIL_USER}>`,
+    from: `"Spendly" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: `Your VoiceSpend ${periodLabel}`,
+    subject: `Your Spendly ${periodLabel}`,
     text: `Please find attached your requested report: ${periodLabel}.`,
     attachments: [
       {
