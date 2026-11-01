@@ -1,6 +1,6 @@
 // ok so this is just model import lines
 import Expense from '../models/Expense.model.js';
-import User from '../models/user.model.js';
+import User from '../models/User.model.js';
 
 // this is the pdfkit module import to make PDF.
 import PDFDocument from 'pdfkit';

@@ -1,4 +1,4 @@
-import User from '../models/user.model.js';
+import User from '../models/User.model.js';
 import Family from '../models/Family.model.js';
 import FamilyInvite from '../models/FamilyInvite.model.js';
 import { createNotification } from './notification.service.js';

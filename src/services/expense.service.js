@@ -2,7 +2,7 @@ import Expense from '../models/Expense.model.js';
 import { parseExpenseFromText } from './gemini.service.js';
 import dayjs from 'dayjs';
 
-import User from '../models/user.model.js';
+import User from '../models/User.model.js';
 import { familyService } from './family.service.js';
 
 export const createExpenseFromVoice = async (userId, transcript) => {
