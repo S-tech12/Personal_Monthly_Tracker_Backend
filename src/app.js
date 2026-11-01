@@ -20,7 +20,10 @@ import { errorHandler } from './middlewares/error.middleware.js';
 const app = express();
 
 // all the Middleware are executed here when the server started
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' || 'http://localhost:5174', credentials: true }));
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
