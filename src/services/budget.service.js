@@ -1,4 +1,4 @@
-import User from '../models/user.model.js';
+import User from '../models/User.model.js';
 import Budget from '../models/Budget.model.js';
 import Expense  from '../models/Expense.model.js';
 import dayjs from 'dayjs';
