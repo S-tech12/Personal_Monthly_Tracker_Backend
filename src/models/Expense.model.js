@@ -15,6 +15,8 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required']
   },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null, index: true },
+  subCategoryId: { type: mongoose.Schema.Types.ObjectId, default: null },
   amount: {
     type: Number,
     required: [true, 'Amount is required'],

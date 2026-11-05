@@ -52,14 +52,17 @@ export const setOverallLimit = async (req, res, next) => {
 export const upsertCategoryBudget = async (req, res, next) => {
   try {
     // first fetch the data from request body
-    const { category, monthlyLimit, currency } = req.body;
+    const { category, categoryId, type, month, year, monthlyLimit, currency } = req.body;
     const errors = {};
 
-    if (category === undefined || category === null || typeof category !== 'string' || category.trim() === '') {
+    if (!categoryId && (category === undefined || category === null || typeof category !== 'string' || category.trim() === '')) {
       errors.category = 'Category is required';
-    } else {
+    } else if (category) {
       req.body.category = category.trim();
     }
+    if (type !== undefined && !['Credit', 'Debit'].includes(type)) errors.type = 'Type must be Credit or Debit';
+    if (month !== undefined && month !== null && (!Number.isInteger(Number(month)) || Number(month) < 1 || Number(month) > 12)) errors.month = 'Month must be between 1 and 12';
+    if (year !== undefined && year !== null && (!Number.isInteger(Number(year)) || Number(year) < 2000)) errors.year = 'Year is invalid';
 
     const parsedMonthlyLimit = parseFloat(monthlyLimit);
     if (monthlyLimit === undefined || monthlyLimit === null || isNaN(parsedMonthlyLimit) || parsedMonthlyLimit < 0) {
@@ -81,7 +84,7 @@ export const upsertCategoryBudget = async (req, res, next) => {
     }
 
     // this is the function which update the category budget..
-    const budget = await budgetService.upsertCategoryBudget(req.user._id, req.body);
+    const budget = await budgetService.upsertCategoryBudget(req.user._id, { ...req.body, month: month == null ? null : Number(month), year: year == null ? null : Number(year) });
     res.json({ success: true, message: 'Budget category saved', data: { budget } });
   } catch (error) {
     if (error.message.includes('Only the head')) {

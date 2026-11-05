@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import mongoose from 'mongoose';
 import { familyService } from './family.service.js';
 import Family from '../models/Family.model.js';
+import Category from '../models/Category.model.js';
 
 export const setOverallLimit = async (userId, { currency, limit }) => {
 
@@ -33,17 +34,24 @@ export const setOverallLimit = async (userId, { currency, limit }) => {
   return user.overallMonthlyLimits;
 };
 
-export const upsertCategoryBudget = async (userId, { category, monthlyLimit, currency }) => {
+export const upsertCategoryBudget = async (userId, { category, categoryId, type = 'Debit', monthlyLimit, currency, month = null, year = null }) => {
   // first it will check that is he head or not?
   const isHead = await familyService.isHeadUser(userId);
   if (!isHead) {
     throw new Error('Only the head of the family can edit budget limits');
   }
 
-  // then after it go and search in the budget model and then it will update document
+  let categoryName = category;
+  if (categoryId) {
+    const dynamicCategory = await Category.findOne({ _id: categoryId, userId, active: true });
+    if (!dynamicCategory) { const error = new Error('Category not found'); error.status = 404; throw error; }
+    if (dynamicCategory.type !== type) { const error = new Error('Category type does not match budget type'); error.status = 400; throw error; }
+    categoryName = dynamicCategory.name;
+  }
+  const filter = categoryId ? { userId, categoryId, month: month || null, year: year || null } : { userId, category: categoryName };
   const budget = await Budget.findOneAndUpdate(
-    { userId, category },
-    { monthlyLimit, currency },
+    filter,
+    { category: categoryName, categoryId: categoryId || null, type, month: month || null, year: year || null, monthlyLimit, currency },
     { returnDocument: 'after', upsert: true }
   );
   return budget;
@@ -136,6 +144,10 @@ export const getBudgetOverview = async (userId) => {
     // And then we return the document with the category, monthly limit, the currency, and the current spend. And for is over limit, if the current spend is greater than budgeted or monthly limit, then it becomes a true, otherwise it becomes a false.
     return {
       category: budget.category,
+      categoryId: budget.categoryId || null,
+      type: budget.type || 'Debit',
+      month: budget.month || null,
+      year: budget.year || null,
       monthlyLimit: budget.monthlyLimit,
       currency: budget.currency,
       currentSpent,

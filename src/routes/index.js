@@ -6,6 +6,7 @@ import budgetRoutes from './budget.routes.js';
 import reportRoutes from './report.routes.js';
 import familyRoutes from './family.routes.js';
 import voiceCommandRoutes from './voiceCommand.routes.js';
+import categoryRoutes from './category.routes.js';
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use('/budgets', budgetRoutes);
 router.use('/reports', reportRoutes);
 router.use('/family', familyRoutes);
 router.use('/voice-command', voiceCommandRoutes);
+router.use('/categories', categoryRoutes);
 
 export default router;

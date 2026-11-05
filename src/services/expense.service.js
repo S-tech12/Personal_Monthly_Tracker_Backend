@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 
 import User from '../models/User.model.js';
 import { familyService } from './family.service.js';
+import { validateTransactionCategory } from './category.service.js';
 
 export const createExpenseFromVoice = async (userId, transcript) => {
 
@@ -46,18 +47,30 @@ export const parseExpensesFromVoice = async (userId, transcript) => {
 
 export const createExpenses = async (userId, expenses, source = 'voice') => {
   const expenseDateTime = new Date();
-  return Expense.insertMany(expenses.map(expense => ({
+  const normalized = [];
+  for (const expense of expenses) {
+    const type = expense.type || 'Debit';
+    const { category: dynamicCategory, subcategory } = await validateTransactionCategory(userId, {
+      categoryId: expense.categoryId,
+      subCategoryId: expense.subCategoryId,
+      type
+    });
+    normalized.push({
     userId,
     title: expense.title,
-    category: expense.category,
+    category: dynamicCategory?.name || expense.category,
+    categoryId: dynamicCategory?._id || expense.categoryId || null,
+    subCategoryId: subcategory?._id || expense.subCategoryId || null,
     amount: expense.amount,
     currency: expense.currency,
-    type: expense.type || 'Debit',
+    type,
     person: expense.person || null,
     transactionDate: expense.date || null,
     expenseDateTime,
     source
-  })));
+    });
+  }
+  return Expense.insertMany(normalized);
 };
 
 export const getExpensesByDate = async (userId, dateString) => {
